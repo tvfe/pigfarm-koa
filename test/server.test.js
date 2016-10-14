@@ -45,6 +45,23 @@ test('gzip', async function () {
 	assert.equal(res.header['content-encoding'], 'gzip')
 });
 
+test('render error', async function () {
+    var result = await request({
+		render: ()=> {throw new Error('render error')},
+		data: {
+			whatever: {
+				type: "static",
+				value: {
+					a: 1,
+					b: 2
+				}
+			}
+		}
+	});
+	assert.notEqual(result.text.indexOf('Error: render error'), -1);
+	assert.notEqual(result.text.indexOf('"whatever":{"a":1'), -1);
+});
+
 test('requestEnd hook', async function () {
 	let through = 0;
 	return new Promise(function (resolve, reject) {
