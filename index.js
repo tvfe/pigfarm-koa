@@ -63,7 +63,7 @@ var exportee = function (pigfood, serveroption) {
                 <body>
                 <h1>提示: 如果是渲染错误，打开console可以看到丢进模版的的数据结构</h1>
                 <div>${pe.withoutColors().render(e).replace(/\n/g, '<br />')}</div>
-                <script>console.log(${e.renderData ? JSON.stringify(e.renderData) : null})</script>
+                <script>console.log(${e.renderData ? outputJSON(e.renderData) : null})</script>
                 </body>
                 </html>`;
             } else {
@@ -84,3 +84,11 @@ exportee.useFetcher = function () {
 };
 
 module.exports = exportee;
+
+function outputJSON(obj) {
+    return String(JSON.stringify(obj))
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/'/g, '&#39;')
+}
