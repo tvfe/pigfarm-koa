@@ -58,10 +58,10 @@ var exportee = function (pigfood, serveroption) {
             if (process.env.NODE_ENV != 'production') {
                 this.body = `<html>
                 <head>
-                <title>错误</title>
+                <title>error</title>
                 </head>
                 <body>
-                <h1>提示: 如果是渲染错误，打开console可以看到丢进模版的的数据结构</h1>
+                <h1>tips: open console, you can see your renderData</h1>
                 <div>${pe.withoutColors().render(e).replace(/\n/g, '<br />')}</div>
                 <script>console.log(${e.renderData ? outputJSON(e.renderData) : null})</script>
                 </body>
