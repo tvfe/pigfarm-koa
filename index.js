@@ -42,7 +42,7 @@ var exportee = function (pigfood, serveroption) {
 
     app.use(function *() {
         try {
-            this.body = yield pig(serveroption.additionFood ? extend({
+            this.body = yield pig.call(this, serveroption.additionFood ? extend({
                     QUERY: this.query,
                     COOKIE: this.cookie
 

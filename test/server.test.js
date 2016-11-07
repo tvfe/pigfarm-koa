@@ -81,6 +81,7 @@ test('requestEnd hook', async function () {
 			}
 		});
 		service.on('fetchstart', function (context) {
+			console.log(context.query);
 			through += 1;
 			context.autonodeContext = context.autonodeContext || {};
 			context.autonodeContext._timer = Date.now();
@@ -101,7 +102,7 @@ test('requestEnd hook', async function () {
 		});
 		try {
 			supertest(service.callback())
-				.get('/')
+				.get('/?query=1')
 				.end(function (err, res) {
 				})
 		} catch (e) {
