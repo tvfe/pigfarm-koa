@@ -52,12 +52,12 @@ var exportee = function (pigfood, serveroption) {
             app.emit('requeststart', this);
             this.body = yield pig.call(this, serveroption.additionFood ? extend({
                     QUERY: this.query,
-                    COOKIE: this.cookie
-
+                    COOKIE: this.cookie,
+                    HEADER: this.header
                 }, serveroption.additionFood.call(this)) : {
                     QUERY: this.query,
-                    COOKIE: this.cookie
-
+                    COOKIE: this.cookie,
+                    HEADER: this.header
                 }
             )
         } catch (e) {
