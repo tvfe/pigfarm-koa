@@ -62,7 +62,7 @@ test('render error', async function () {
 	assert.notEqual(result.text.indexOf('"whatever":{"a":1'), -1);
 });
 
-test('requestEnd hook', async function () {
+test('pigfarm hook', async function () {
 	let through = 0;
 	return new Promise(function (resolve, reject) {
 		var service = pigfarmkoa({
@@ -81,6 +81,7 @@ test('requestEnd hook', async function () {
 			}
 		});
 		service.on('fetchstart', function (context) {
+			console.log(context.query);
 			through += 1;
 			context.autonodeContext = context.autonodeContext || {};
 			context.autonodeContext._timer = Date.now();
@@ -101,7 +102,49 @@ test('requestEnd hook', async function () {
 		});
 		try {
 			supertest(service.callback())
-				.get('/')
+				.get('/?query=1')
+				.end(function (err, res) {
+				})
+		} catch (e) {
+		}
+	})
+});
+test('request hook', async function() {
+	let through = 0;
+	return new Promise(function (resolve, reject) {
+		var service = pigfarmkoa({
+			render: ()=> {
+			    throw new Error('hehe')
+			},
+			data: {
+				auto: {
+					type: "request",
+					action: {
+						url: "what://ever"
+					}
+				}
+			}
+		});
+		service.on('requeststart', function (context) {
+			through++;
+		});
+		service.on('requesterror', function () {
+			through++;
+		});
+		service.on('requestend', function (context, time) {
+			try {
+				assert(time > 190);
+				through++;
+				assert.equal(through, 3);
+			} catch(e) {
+				return reject(e);
+			}
+			resolve();
+		});
+
+		try {
+			supertest(service.callback())
+				.get('/?query=1')
 				.end(function (err, res) {
 				})
 		} catch (e) {

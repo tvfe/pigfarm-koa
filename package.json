@@ -1,10 +1,10 @@
 {
   "name": "pigfarm-koa",
-  "version": "1.0.3",
+  "version": "1.0.5",
   "description": "simple koa server for pigfarm logic",
   "main": "index.js",
   "scripts": {
-    "test": "node_modules/.bin/nyc node_modules/.bin/ava test/**/*.test.js --timeout 5000"
+    "test": "node_modules/.bin/nyc node_modules/.bin/ava test/**/*.test.js --timeout 5000 --verbose"
   },
   "author": "",
   "license": "ISC",

@@ -26,6 +26,12 @@ var exportee = function (pigfood, serveroption) {
 
     var app = koa();
     var pig = pigfarm(pigfood);
+    
+    // 转发pigfarm的内部事件
+    Object.keys(EventEmitter.prototype).forEach(key=> {
+        app[key] = pig[key] && pig[key].bind ? pig[key].bind(pig) : pig[key];
+    });
+    
     debug('create koa');
     if (serveroption.gzip) {
         app.use(compress({
@@ -41,8 +47,10 @@ var exportee = function (pigfood, serveroption) {
     });
 
     app.use(function *() {
+        var start = process.uptime();
         try {
-            this.body = yield pig(serveroption.additionFood ? extend({
+            app.emit('requeststart', this);
+            this.body = yield pig.call(this, serveroption.additionFood ? extend({
                     QUERY: this.query,
                     COOKIE: this.cookie
 
@@ -53,6 +61,7 @@ var exportee = function (pigfood, serveroption) {
                 }
             )
         } catch (e) {
+            app.emit('requesterror', this, e);
             this.status = e.status || 503;
 
             if (process.env.NODE_ENV != 'production') {
@@ -70,11 +79,9 @@ var exportee = function (pigfood, serveroption) {
                 this.body = ''
             }
         }
+        app.emit('requestend', this, (process.uptime() - start) * 1000);
     });
 
-    Object.keys(EventEmitter.prototype).forEach(key=> {
-        app[key] = pig[key] && pig[key].bind ? pig[key].bind(pig) : pig[key];
-    });
     debug('created');
     return app;
 };
