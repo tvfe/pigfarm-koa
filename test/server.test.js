@@ -29,6 +29,26 @@ var request = function (pigfood, option, headers) {
 	});
 };
 
+test('header', async function() {
+	var res = await request({
+		render: ()=> '',
+		data: {}
+	}, {
+		header: {'content-type': 'application/javascript'}
+	});
+	assert.equal(res.header['content-type'], 'application/javascript');
+});
+test('header when error', async function() {
+	var res = await request({
+		render: ()=> {throw new Error('hehe')},
+		data: {}
+	}, {
+		header: {'content-type': 'application/javascript'}
+	});
+	assert.equal(res.statusCode, 555);
+	assert.equal(res.header['content-type'], 'application/javascript');
+});
+
 test('gzip', async function () {
 	var dom = '';
 	for (var i = 0; i < 1024; i++) {
