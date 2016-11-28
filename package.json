@@ -1,6 +1,6 @@
 {
   "name": "pigfarm-koa",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "simple koa server for pigfarm logic",
   "main": "index.js",
   "scripts": {
