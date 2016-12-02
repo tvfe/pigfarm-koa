@@ -76,6 +76,11 @@ var exportee = function (pigfood, serveroption) {
 					this.set(header, serveroption.header[header]);
 				});
 			}
+            if (e.headers) {
+                Object.keys(e.headers).forEach((header) => {
+                    this.set(header, e.headers[header]);
+                });
+            }
 			if (process.env.NODE_ENV != 'production') {
 				this.body = `<html>
                 <head>
