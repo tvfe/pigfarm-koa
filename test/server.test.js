@@ -82,6 +82,26 @@ test('render error', async function () {
 	assert.notEqual(result.text.indexOf('"whatever":{"a":1'), -1);
 });
 
+test.serial('render error', async function () {
+	process.env.NODE_ENV = 'production';
+	var result = await request({
+		render: ()=> {throw new Error('render error')},
+		data: {
+			whatever: {
+				type: "static",
+				value: {
+					a: 1,
+					b: 2
+				}
+			}
+		}
+	}, {
+		debug: true
+	});
+	process.env.NODE_ENV = '';
+	assert.equal(result.header.pigfarm, 'render error');
+});
+
 test('pigfarm hook', async function () {
 	let through = 0;
 	return new Promise(function (resolve, reject) {
@@ -101,7 +121,6 @@ test('pigfarm hook', async function () {
 			}
 		});
 		service.on('fetchstart', function (context) {
-			console.log(context.query);
 			through += 1;
 			context.autonodeContext = context.autonodeContext || {};
 			context.autonodeContext._timer = Date.now();
