@@ -17,7 +17,8 @@ require("statuses")['555'] = 'autonode render error';
  * @param serveroption
  *  header
  *  gzip
- *
+ *  additionFood:fn
+ *  debug
  *
  * @returns {*}
  */
@@ -93,6 +94,9 @@ var exportee = function (pigfood, serveroption) {
                 </body>
                 </html>`;
 			} else {
+				if (serveroption.debug) {
+					this.set('pigfarm', e.message);
+				}
 				this.body = ''
 			}
 		}
