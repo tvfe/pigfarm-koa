@@ -10,15 +10,17 @@
   "license": "ISC",
   "dependencies": {
     "cookie": "^0.3.1",
+    "debug": "^2.6.1",
     "extend": "^3.0.0",
     "koa": "^1.2.4",
+    "koa-bodyparser": "^2.3.0",
     "koa-compress": "^1.0.9",
     "pigfarm.js": "^1.0.3",
     "pretty-error": "^2.0.1",
     "process.hrtime": "^1.0.3"
   },
   "devDependencies": {
-    "ava": "^0.16.0",
+    "ava": "^0.18.2",
     "nyc": "^8.3.1",
     "pigfarm-fetcher": "^1.0.1",
     "supertest": "^2.0.0"

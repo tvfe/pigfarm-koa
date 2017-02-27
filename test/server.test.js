@@ -190,3 +190,33 @@ test('request hook', async function() {
 		}
 	})
 });
+test('post', async function() {
+
+	return new Promise(function (resolve, reject) {
+		var service = pigfarmkoa({
+			render: (data)=> {
+				return data.BODY.username
+			},
+			data: {
+				auto: {
+					type: "request",
+					action: {
+						url: "what://ever"
+					}
+				}
+			}
+		});
+
+		supertest(service.callback())
+			.post('/?query=1')
+			.send({'username': 'xosuperpig'})
+			.end(function (err, res) {
+				try {
+					assert.equal(res.text, 'xosuperpig')
+				} catch(e) {
+					return reject(e)
+				}
+				resolve();
+			})
+	})
+});

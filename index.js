@@ -4,6 +4,7 @@ var cookie = require("cookie");
 var extend = require("extend");
 var pigfarm = require('pigfarm.js');
 var compress = require("koa-compress");
+var bodyparser = require("koa-bodyparser");
 var EventEmitter = require("events");
 var debug = require("debug")('pigfarm-koa');
 var pe = new (require("pretty-error"));
@@ -47,6 +48,8 @@ var exportee = function (pigfood, serveroption) {
 		yield next;
 	});
 
+	app.use(bodyparser());
+
 	app.use(function *() {
 		var start = process.uptime();
 		try {
@@ -54,12 +57,14 @@ var exportee = function (pigfood, serveroption) {
 			var body = yield pig.call(this, serveroption.additionFood ? extend({
 					QUERY: this.query,
 					COOKIE: this.cookie,
-					HEADER: this.header
+					HEADER: this.header,
+					BODY: this.request.body || {}
 
 				}, serveroption.additionFood.call(this)) : {
 					QUERY: this.query,
 					COOKIE: this.cookie,
-					HEADER: this.header
+					HEADER: this.header,
+					BODY: this.request.body || {}
 				}
 			);
 			if (serveroption.header) {
