@@ -1,20 +1,20 @@
 'use strict';
-var test = require("ava").test;
-var pigfarmkoa = require("..");
-var supertest = require("supertest");
-var assert = require("assert");
+const test = require("ava").test;
+const pigfarmkoa = require("..");
+const supertest = require("supertest");
+const assert = require("assert");
 
-var requestFactory = require("pigfarm-fetcher");
+const requestFactory = require("pigfarm-fetcher");
 requestFactory.registerRequestor('default', function (cfg, callback) {
 	setTimeout(function () {
 		callback(null, {testdata: true});
 	}, 200);
 });
 
-var request = function (pigfood, option, headers) {
-	var _request = supertest(pigfarmkoa(pigfood, option).callback());
+let request = function (pigfood, option, headers) {
+	let _request = supertest(pigfarmkoa(pigfood, option).callback());
 	return new Promise((resolve, reject)=> {
-		var req = _request
+		let req = _request
 			.get('/');
 
 		if (headers) {
@@ -30,7 +30,7 @@ var request = function (pigfood, option, headers) {
 };
 
 test('header', async function() {
-	var res = await request({
+	let res = await request({
 		render: ()=> '',
 		data: {}
 	}, {
@@ -39,7 +39,7 @@ test('header', async function() {
 	assert.equal(res.header['content-type'], 'application/javascript');
 });
 test('header when error', async function() {
-	var res = await request({
+	let res = await request({
 		render: ()=> {throw new Error('hehe')},
 		data: {}
 	}, {
@@ -50,11 +50,11 @@ test('header when error', async function() {
 });
 
 test('gzip', async function () {
-	var dom = '';
-	for (var i = 0; i < 1024; i++) {
+	let dom = '';
+	for (let i = 0; i < 1024; i++) {
 		dom += '<div></div>'
 	}
-	var res = await request({
+	let res = await request({
 		render: ()=> dom,
 		data: {}
 	}, {
@@ -66,7 +66,7 @@ test('gzip', async function () {
 });
 
 test('render error', async function () {
-    var result = await request({
+    let result = await request({
 		render: ()=> {throw new Error('render error')},
 		data: {
 			whatever: {
@@ -84,7 +84,7 @@ test('render error', async function () {
 
 test.serial('render error', async function () {
 	process.env.NODE_ENV = 'production';
-	var result = await request({
+	let result = await request({
 		render: ()=> {throw new Error('render error')},
 		data: {
 			whatever: {
@@ -105,7 +105,7 @@ test.serial('render error', async function () {
 test('pigfarm hook', async function () {
 	let through = 0;
 	return new Promise(function (resolve, reject) {
-		var service = pigfarmkoa({
+		let service = pigfarmkoa({
 			render: ()=> '<div></div>',
 			data: {
 				auto: {
@@ -151,7 +151,7 @@ test('pigfarm hook', async function () {
 test('request hook', async function() {
 	let through = 0;
 	return new Promise(function (resolve, reject) {
-		var service = pigfarmkoa({
+		let service = pigfarmkoa({
 			render: ()=> {
 			    throw new Error('hehe')
 			},
@@ -193,7 +193,7 @@ test('request hook', async function() {
 test('post', async function() {
 
 	return new Promise(function (resolve, reject) {
-		var service = pigfarmkoa({
+		let service = pigfarmkoa({
 			render: (data)=> {
 				return data.BODY.username
 			},
@@ -213,6 +213,81 @@ test('post', async function() {
 			.end(function (err, res) {
 				try {
 					assert.equal(res.text, 'xosuperpig')
+				} catch(e) {
+					return reject(e)
+				}
+				resolve();
+			})
+	})
+});
+test('header in error', async function() {
+	return new Promise(function (resolve, reject) {
+		let service = pigfarmkoa({
+			render: (data)=> {
+				return data.BODY.username
+			},
+			data: {
+				auto: {
+					type: "request",
+					action: {
+						url: "what://ever",
+						fixBefore: function() {
+							let error = new Error;
+							error.status = 302;
+							error.headers = {
+								Location: 'http://v.qq.com'
+							};
+							throw error;
+						},
+						onError: e=> e
+					}
+				}
+			}
+		});
+
+		supertest(service.callback())
+			.post('/?query=1')
+			.end(function (err, res) {
+				try {
+					assert.equal(res.headers.location, 'http://v.qq.com')
+				} catch(e) {
+					return reject(e)
+				}
+				resolve();
+			})
+	})
+});
+test('write header in helper renderend', async function() {
+	return new Promise(function (resolve, reject) {
+		let service = pigfarmkoa({
+			template: 'haha',
+			helper: {
+				_pigfarmRenderEnd: (context, renderData)=> {
+					context.set('set-cookie', 'date=' + renderData.somedata.date)
+					context.set('location', 'http://v.qq.com')
+				}
+			},
+			data: {
+				somedata: {
+					type: "request",
+					action: {
+						url: "what://ever",
+						fixAfter: function() {
+							return {
+								date: Date.now()
+							}
+						}
+					}
+				}
+			}
+		});
+
+		supertest(service.callback())
+			.post('/?query=1')
+			.end(function (err, res) {
+				try {
+					assert(res.headers['set-cookie'][0].indexOf('date=') == 0);
+					assert.equal(res.headers['location'], 'http://v.qq.com');
 				} catch(e) {
 					return reject(e)
 				}

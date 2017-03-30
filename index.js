@@ -1,13 +1,13 @@
 'use strict';
-var koa = require("koa");
-var cookie = require("cookie");
-var extend = require("extend");
-var pigfarm = require('pigfarm.js');
-var compress = require("koa-compress");
-var bodyparser = require("koa-bodyparser");
-var EventEmitter = require("events");
-var debug = require("debug")('pigfarm-koa');
-var pe = new (require("pretty-error"));
+const koa = require("koa");
+const cookie = require("cookie");
+const extend = require("extend");
+const pigfarm = require('pigfarm.js');
+const compress = require("koa-compress");
+const bodyparser = require("koa-bodyparser");
+const EventEmitter = require("events");
+const debug = require("debug")('pigfarm-koa');
+const pe = new (require("pretty-error"));
 require("statuses")['555'] = 'autonode render error';
 /**
  *
@@ -23,11 +23,13 @@ require("statuses")['555'] = 'autonode render error';
  *
  * @returns {*}
  */
-var exportee = function (pigfood, serveroption) {
+let exportee = function (pigfood, serveroption) {
 	serveroption = serveroption || {};
 
-	var app = koa();
-	var pig = pigfarm(pigfood);
+	let app = new koa();
+	let pig = pigfarm(pigfood);
+
+	let helpers = pigfood.helper || {};
 
 	// 转发pigfarm的内部事件
 	Object.keys(EventEmitter.prototype).forEach(key=> {
@@ -42,53 +44,59 @@ var exportee = function (pigfood, serveroption) {
 		}));
 	}
 
-	app.use(function *(next) {
-		debug('request', this.req.url);
-		this.cookie = this.request.headers['cookie'] ? cookie.parse(this.request.headers['cookie']) : {};
-		yield next;
+	app.use(async (context, next)=> {
+		debug('request', context.req.url);
+		context.cookie = context.request.headers['cookie'] ? cookie.parse(context.request.headers['cookie']) : {};
+		await next();
 	});
 
 	app.use(bodyparser());
 
-	app.use(function *() {
-		var start = process.uptime();
-		try {
-			app.emit('requeststart', this);
-			var body = yield pig.call(this, serveroption.additionFood ? extend({
-					QUERY: this.query,
-					COOKIE: this.cookie,
-					HEADER: this.header,
-					BODY: this.request.body || {}
+	app.use(async context=> {
+		let start = process.uptime();
 
-				}, serveroption.additionFood.call(this)) : {
-					QUERY: this.query,
-					COOKIE: this.cookie,
-					HEADER: this.header,
-					BODY: this.request.body || {}
-				}
-			);
+		let fetchContext = serveroption.additionFood ? extend({
+			QUERY: context.query,
+			COOKIE: context.cookie,
+			HEADER: context.header,
+			BODY: context.request.body || {}
+
+		}, serveroption.additionFood.call(context)) : {
+			QUERY: context.query,
+			COOKIE: context.cookie,
+			HEADER: context.header,
+			BODY: context.request.body || {}
+		};
+
+		try {
+			app.emit('requeststart', context);
+
+			let body = await pig.call(context, fetchContext);
+
+			callhook(helpers._pigfarmRenderEnd, [context, fetchContext]);
 			if (serveroption.header) {
 				Object.keys(serveroption.header).forEach((header)=> {
-					this.set(header, serveroption.header[header]);
+					context.set(header, serveroption.header[header]);
 				});
 			}
-			this.body = body;
+			context.body = body;
 		} catch (e) {
-			app.emit('requesterror', this, e);
-			this.status = e.status || 503;
+			app.emit('requesterror', context, e);
+			context.status = e.status || 503;
 
+			callhook(helpers._pigfarmRequestError, [context, e, fetchContext]);
 			if (serveroption.header) {
 				Object.keys(serveroption.header).forEach((header)=> {
-					this.set(header, serveroption.header[header]);
+					context.set(header, serveroption.header[header]);
 				});
 			}
             if (e.headers) {
                 Object.keys(e.headers).forEach((header) => {
-                    this.set(header, e.headers[header]);
+                    context.set(header, e.headers[header]);
                 });
             }
 			if (process.env.NODE_ENV != 'production') {
-				this.body = `<html>
+				context.body = `<html>
                 <head>
                 <title>error</title>
                 </head>
@@ -100,12 +108,12 @@ var exportee = function (pigfood, serveroption) {
                 </html>`;
 			} else {
 				if (serveroption.debug) {
-					this.set('pigfarm', e.message);
+					context.set('pigfarm', e.message);
 				}
-				this.body = ''
+				context.body = ''
 			}
 		}
-		app.emit('requestend', this, (process.uptime() - start) * 1000);
+		app.emit('requestend', context, (process.uptime() - start) * 1000);
 	});
 
 	debug('created');
@@ -124,4 +132,9 @@ function outputJSON(obj) {
 		.replace(/</g, '&lt;')
 		.replace(/>/g, '&gt;')
 		.replace(/'/g, '&#39;')
+}
+function callhook(fn, args) {
+    try {
+		fn && fn.apply(this, args)
+	} catch(e) {}
 }
