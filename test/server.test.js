@@ -220,3 +220,78 @@ test('post', async function() {
 			})
 	})
 });
+test('header in error', async function() {
+	return new Promise(function (resolve, reject) {
+		let service = pigfarmkoa({
+			render: (data)=> {
+				return data.BODY.username
+			},
+			data: {
+				auto: {
+					type: "request",
+					action: {
+						url: "what://ever",
+						fixBefore: function() {
+							let error = new Error;
+							error.status = 302;
+							error.headers = {
+								Location: 'http://v.qq.com'
+							};
+							throw error;
+						},
+						onError: e=> e
+					}
+				}
+			}
+		});
+
+		supertest(service.callback())
+			.post('/?query=1')
+			.end(function (err, res) {
+				try {
+					assert.equal(res.headers.location, 'http://v.qq.com')
+				} catch(e) {
+					return reject(e)
+				}
+				resolve();
+			})
+	})
+});
+test('write header in helper renderend', async function() {
+	return new Promise(function (resolve, reject) {
+		let service = pigfarmkoa({
+			template: 'haha',
+			helper: {
+				_pigfarmRenderEnd: (context, renderData)=> {
+					context.set('set-cookie', 'date=' + renderData.somedata.date)
+					context.set('location', 'http://v.qq.com')
+				}
+			},
+			data: {
+				somedata: {
+					type: "request",
+					action: {
+						url: "what://ever",
+						fixAfter: function() {
+							return {
+								date: Date.now()
+							}
+						}
+					}
+				}
+			}
+		});
+
+		supertest(service.callback())
+			.post('/?query=1')
+			.end(function (err, res) {
+				try {
+					assert(res.headers['set-cookie'][0].indexOf('date=') == 0);
+					assert.equal(res.headers['location'], 'http://v.qq.com');
+				} catch(e) {
+					return reject(e)
+				}
+				resolve();
+			})
+	})
+});

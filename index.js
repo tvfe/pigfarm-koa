@@ -29,6 +29,8 @@ var exportee = function (pigfood, serveroption) {
 	var app = koa();
 	var pig = pigfarm(pigfood);
 
+	var helpers = pigfood.helper || {};
+
 	// 转发pigfarm的内部事件
 	Object.keys(EventEmitter.prototype).forEach(key=> {
 		app[key] = pig[key] && pig[key].bind ? pig[key].bind(pig) : pig[key];
@@ -52,21 +54,24 @@ var exportee = function (pigfood, serveroption) {
 
 	app.use(function *() {
 		var start = process.uptime();
+		var fetchContext = serveroption.additionFood ? extend({
+			QUERY: this.query,
+			COOKIE: this.cookie,
+			HEADER: this.header,
+			BODY: this.request.body || {}
+
+		}, serveroption.additionFood.call(this)) : {
+			QUERY: this.query,
+			COOKIE: this.cookie,
+			HEADER: this.header,
+			BODY: this.request.body || {}
+		};
 		try {
 			app.emit('requeststart', this);
-			var body = yield pig.call(this, serveroption.additionFood ? extend({
-					QUERY: this.query,
-					COOKIE: this.cookie,
-					HEADER: this.header,
-					BODY: this.request.body || {}
 
-				}, serveroption.additionFood.call(this)) : {
-					QUERY: this.query,
-					COOKIE: this.cookie,
-					HEADER: this.header,
-					BODY: this.request.body || {}
-				}
-			);
+			let body = yield pig.call(this, fetchContext);
+
+			callhook(helpers._pigfarmRenderEnd, [this, fetchContext]);
 			if (serveroption.header) {
 				Object.keys(serveroption.header).forEach((header)=> {
 					this.set(header, serveroption.header[header]);
@@ -77,6 +82,7 @@ var exportee = function (pigfood, serveroption) {
 			app.emit('requesterror', this, e);
 			this.status = e.status || 503;
 
+			callhook(helpers._pigfarmRequestError, [this, e, fetchContext]);
 			if (serveroption.header) {
 				Object.keys(serveroption.header).forEach((header)=> {
 					this.set(header, serveroption.header[header]);
@@ -124,4 +130,9 @@ function outputJSON(obj) {
 		.replace(/</g, '&lt;')
 		.replace(/>/g, '&gt;')
 		.replace(/'/g, '&#39;')
+}
+function callhook(fn, args) {
+	try {
+		fn && fn.apply(this, args)
+	} catch(e) {}
 }
